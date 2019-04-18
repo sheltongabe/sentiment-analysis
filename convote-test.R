@@ -43,17 +43,49 @@ runAnalyzation <- function() {
 # Get the analysis
 sentiments <- runAnalyzation()
 
-# Normalize the results
+# Normalize the results and get a prediction of yes or no
+results <- structure(list(Prediction = character(),
+                          Actual = character(),
+                          Correct = integer()),
+                     class = "data.frame")
 maxSentiment <- max(sentiments$Sentiment)
 for(rownum in 1:NROW(sentiments)) {
   sentiments[rownum, "Sentiment"] = sentiments[rownum, "Sentiment"] /
     maxSentiment
+  
+  # Get Prediction
+  prediction <- "N"
+  if(sentiments[rownum, "Sentiment"] > 0) {
+    prediction <- "Y"
+  }
+  else {
+    prediction <- "N"
+  }
+  
+  # Get actual and correctness
+  actual <- substring(sentiments[rownum, "File"], 22, 22)
+  correct <- 0
+  if(actual == prediction) {
+    correct <- 1
+  }
+  else {
+    correct <- 0
+  }
+  
+  results[NROW(results) + 1,] = list(prediction, actual, correct)
 }
 
 # Plot sentiments
 ggplot(sentiments, aes(File, Sentiment)) +
   geom_col(show.legend = FALSE)
 print(paste("Net Sentiment Total:", sum(sentiments$Sentiment), " "))
+
+write.csv(sentiments, file="sentiments.csv")
+
+# Calculate overall precision
+precision <- length(which(results$Correct == 1)) / NROW(results) * 100
+
+print(paste("Precision", precision))
 
 #ggplot(test_sentiment, aes(index, sentiment, fill = word)) +
 #  geom_col(show.legend = FALSE) +
