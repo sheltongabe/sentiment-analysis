@@ -40,9 +40,20 @@ runAnalyzation <- function() {
   return(netSentiments)
 }
 
+# Get the analysis
 sentiments <- runAnalyzation()
+
+# Normalize the results
+maxSentiment <- max(sentiments$Sentiment)
+for(rownum in 1:NROW(sentiments)) {
+  sentiments[rownum, "Sentiment"] = sentiments[rownum, "Sentiment"] /
+    maxSentiment
+}
+
+# Plot sentiments
 ggplot(sentiments, aes(File, Sentiment)) +
   geom_col(show.legend = FALSE)
+print(paste("Net Sentiment Total:", sum(sentiments$Sentiment), " "))
 
 #ggplot(test_sentiment, aes(index, sentiment, fill = word)) +
 #  geom_col(show.legend = FALSE) +
