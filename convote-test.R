@@ -1,6 +1,5 @@
 library(tidyverse)
 library(tidytext)
-library(glue)
 library(stringr)
 library(dbplyr)
 library(tidyr)
@@ -16,9 +15,16 @@ analyzeSpeech <- function(file) {
   tidy_congress <- congressText %>%
     unnest_tokens(word, text)
   
-  # Get the sentiment using bing
+  # Build Lexicon with unions
+  bing_lex <- get_sentiments("bing")
+  loughran_lex <- get_sentiments("loughran")
+  # affin_lex <- get_sentiments("afinn")
+  sent_lex <- union(bing_lex, loughran_lex, by = "word")
+  # sent_lex <- union(sent_lex, get_sentiments("nrc"))
+  
+  # Get sentiment with sent_lex
   congressSentiment <- tidy_congress %>%
-    inner_join(get_sentiments("bing")) %>%
+    inner_join(sent_lex) %>%
     count(word, index = line, sentiment) %>%
     spread(sentiment, n, fill = 0) %>%
     mutate(sentiment = positive - negative)
@@ -33,8 +39,6 @@ runAnalyzation <- function() {
   for(f in files) {
     try(sen <- analyzeSpeech(f), TRUE)
     netSentiments[NROW(netSentiments) + 1,] = list(f, sum(sen$sentiment))
-    #try(ggplot(sen, aes(index, sentiment, fill = word)) +
-    #  geom_col(show.legend = FALSE), TRUE)
   }
   
   return(netSentiments)
@@ -43,11 +47,13 @@ runAnalyzation <- function() {
 # Get the analysis
 sentiments <- runAnalyzation()
 
-# Normalize the results and get a prediction of yes or no
+# Table to hold results that are compiled together
 results <- structure(list(Prediction = character(),
                           Actual = character(),
                           Correct = integer()),
                      class = "data.frame")
+
+# Normalize the results and get a prediction of yes or no
 maxSentiment <- max(sentiments$Sentiment)
 for(rownum in 1:NROW(sentiments)) {
   sentiments[rownum, "Sentiment"] = sentiments[rownum, "Sentiment"] /
@@ -80,12 +86,15 @@ ggplot(sentiments, aes(File, Sentiment)) +
   geom_col(show.legend = FALSE)
 print(paste("Net Sentiment Total:", sum(sentiments$Sentiment), " "))
 
+# Output file
 write.csv(sentiments, file="sentiments.csv")
 
 # Calculate overall precision
 precision <- length(which(results$Correct == 1)) / NROW(results) * 100
-
 print(paste("Precision", precision))
+
+#try(ggplot(sen, aes(index, sentiment, fill = word)) +
+#  geom_col(show.legend = FALSE), TRUE)
 
 #ggplot(test_sentiment, aes(index, sentiment, fill = word)) +
 #  geom_col(show.legend = FALSE) +
