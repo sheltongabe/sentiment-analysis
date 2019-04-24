@@ -5,12 +5,14 @@ library(dbplyr)
 library(tidyr)
 library(ggplot2)
 
-filePath <- "./convote_v1.1/data_stage_one/training_set/"
-files <- list.files(filePath)
+path <- "convote_v1.1/all/"
+
+files <- list.files(path)
+
 
 analyzeSpeech <- function(file) {
   # Read the file in and split its tokens
-  text <- readLines(paste0(filePath, file))
+  text <- readLines(paste0(path, file))
   congressText <- tibble(line = 1:NROW(text), text = text)
   tidy_congress <- congressText %>%
     unnest_tokens(word, text)
